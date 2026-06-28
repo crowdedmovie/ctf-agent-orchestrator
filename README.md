@@ -1,6 +1,6 @@
 # ctf-agent-orchestrator
 
-An AI-powered CTF solving workstation. It provisions a cloud VM pre-loaded with reverse-engineering, forensics, crypto, pwn, and web tooling, then lets you throw CTF challenges at one or more AI agents — **Claude Code** and **Codex** — through a web UI. Run a single agent, race several in parallel, or fan challenges out to a fleet of disposable worker VMs.
+An AI-powered CTF solving workstation. Point it at a CTF platform or upload challenge files, and Claude Code will work through them autonomously — running tools, writing exploits, and reporting flags.
 
 ```
 ┌──────────┐   challenge    ┌─────────────────────┐   spawns    ┌──────────────┐
@@ -14,6 +14,94 @@ An AI-powered CTF solving workstation. It provisions a cloud VM pre-loaded with 
 Modern AI agents can solve many CTF challenges autonomously — the bottleneck is usually *environment*, not intelligence. An agent needs binutils, disassemblers, debuggers, forensics suites, network tools, and a sandbox where it can run freely. This project provisions that environment once, then exposes challenges to agents that can execute commands, read/write files, collaborate, and iterate until they find the flag.
 
 Agents are effective out of the box, but get better with **skills** — structured, version-controlled workflows that guide how to approach each challenge type (forensics, reversing, crypto, pwn, web, …). When you catch an agent down a rabbit hole or missing an obvious technique, you encode that lesson into a skill so it doesn't repeat the mistake. The skill library compounds over time and the solve rate climbs.
+
+---
+
+## Quick Start (Local)
+
+Run the webapp on your own machine — no cloud account needed.
+
+### Prerequisites
+
+- **Python 3.12+** — check with `python3 --version`
+- **uv** — install with `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- **Claude Code CLI** — install with `npm install -g @anthropic-ai/claude-code`, then `claude auth login`
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/NUSGreyhats/ctf-agent-orchestrator
+cd ctf-agent-orchestrator
+```
+
+### 2. Install Python dependencies
+
+```bash
+uv venv ~/.ctf-solver/venv
+uv pip install --python ~/.ctf-solver/venv/bin/python \
+  starlette uvicorn python-multipart itsdangerous websockets httpx requests
+```
+
+### 3. Start the webapp
+
+```bash
+bash start-local.sh
+```
+
+The password is printed on startup and saved to `~/.ctf-solver/.password`. To retrieve it later:
+
+```bash
+cat ~/.ctf-solver/.password
+```
+
+Open **http://localhost:8080** in your browser and log in with that password.
+
+> To use a different port: `PORT=9000 bash start-local.sh`
+
+### 4. Connect your CTF platform (optional)
+
+If your CTF runs on a supported platform (CTFd, rCTF, HTB, etc.) you can pull all challenges in one click instead of uploading them manually.
+
+**Getting a CTFd API token:**
+1. Log in to your CTFd instance
+2. Click your username (top right) → **Settings** → **Access Tokens**
+3. Generate a token and copy it
+
+**Adding the connection in the webapp:**
+1. Go to **Settings** → **Platforms** → **Add Platform** → select **CTFd**
+2. Enter the CTFd URL and paste your API token
+3. Click **Test Connection** — you should see your username confirmed
+4. Click **Save**
+
+### 5. Import challenges and solve
+
+**From a platform:**
+1. Click **Import from Platform** on the main page
+2. Select your saved connection
+3. Pick the challenges you want and click **Import**
+
+**Manually:**
+1. Click **+ Add Challenge**
+2. Fill in the name, description, flag format, and upload any files
+3. Select an agent (Claude Code recommended) and model
+4. Click **Create & Solve**
+
+Watch the agent work in real time. When it finds a flag, a banner appears — review it and click **Submit** to send it to the platform.
+
+---
+
+## Solving a Challenge — What to Expect
+
+1. **Agent starts** — Claude reads the challenge description and files, then starts working
+2. **Live output** — you see every tool call, thought, and result as it happens
+3. **Flag detected** — a banner appears with the candidate flag
+4. **You submit** — click the submit button (or enable auto-submit in Settings to do it automatically)
+5. **Steer if needed** — if the agent gets stuck, type a hint in the Steer box and hit Enter
+6. **Resume / Retry** — if a run fails, Resume continues the session; Retry starts fresh
+
+> **Auto-submit** is off by default. Each unique flag candidate is only submitted once, so there's no risk of rate-limit bans from duplicate attempts. Enable it in **Settings → Auto-submit detected flags** only if you trust the flag detection.
+
+---
 
 ## Features
 
@@ -113,6 +201,8 @@ Agents are effective out of the box, but get better with **skills** — structur
 
 </details>
 
+---
+
 ## Supported Agents
 
 | Agent | Models | Effort levels | Resume | Collaboration | Steering |
@@ -122,7 +212,11 @@ Agents are effective out of the box, but get better with **skills** — structur
 
 Two or more agent rows on a challenge automatically create a parallel run.
 
-## Getting Started
+---
+
+## Cloud Deployment
+
+For a persistent, fully-tooled solving environment, deploy to a cloud VM. The install scripts provision all CTF tooling (reverse engineering, forensics, crypto, pwn, web) automatically.
 
 ### 1. Deploy the VM
 
@@ -155,13 +249,7 @@ codex login            # Codex
 
 ### 3. Solve from the web UI
 
-Open `https://<VM_IP>` and log in, then:
-
-1. **+ Add Challenge** → Single, Bulk Upload, or Import from Platform.
-2. Fill in name, description, flag format, and upload/import files.
-3. Pick agent / model / effort — add more rows to race in parallel.
-4. **Create & Solve** and watch output stream live.
-5. Steer if it stalls; Resume/Retry if it finishes unsolved; use the Files tab to inspect workspaces.
+Open `https://<VM_IP>` and log in, then follow steps 4–5 from the Quick Start above.
 
 ### 4. (Optional) Discord
 
@@ -174,6 +262,8 @@ cd infra/hetzner   # or your provider
 terraform destroy
 ```
 
+---
+
 ## Skills
 
 Skills are structured workflows that steer how agents approach challenge types. They come from two sources, both compiled into the runtime `all-skills/` catalog during setup:
@@ -182,6 +272,8 @@ Skills are structured workflows that steer how agents approach challenge types. 
 - **[ljagiello/ctf-skills](https://github.com/ljagiello/ctf-skills)** — category skills for pwn, web, crypto, rev, misc, osint, malware, and AI/ML.
 
 The webapp symlinks selected skills into each run's `.claude/skills` and `.codex/skills`. You can also upload a `.zip` bundle or single `SKILL.md` from **Settings**. See [skills/README.md](skills/README.md) for the full catalog.
+
+---
 
 ## Project Structure
 
@@ -195,9 +287,12 @@ webapp/           Starlette/ASGI app — challenge management + agent streaming
   static/         Frontend (vanilla JS, CSS)
 mcps/             MCP servers (GDB debugger)
 skills/           Repo-owned agent skills (forensics, tools)
+start-local.sh    Local startup script (runs on port 8080, no root needed)
 ```
 
-Runtime-only directories created on the VM: `all-skills/` (compiled skill catalog), `challenges/` (uploaded files, workspaces, settings), and `state/` (challenge metadata, per-run JSONL logs, platform connections). These are preserved across deploy syncs.
+Runtime-only directories created on first run: `~/.ctf-solver/` (local) or `/root/ctf-agent-wrapper/` (cloud VM) — holds challenge files, state, and the skill catalog. These are never committed to the repo.
+
+---
 
 ## Documentation
 
@@ -205,5 +300,3 @@ Runtime-only directories created on the VM: `all-skills/` (compiled skill catalo
 - **[SWARM.md](SWARM.md)** — remote GCP execution design and operations.
 - **[infra/README.md](infra/README.md)** — per-provider Terraform usage.
 - **[skills/README.md](skills/README.md)** — skill catalog.
-</content>
-</invoke>

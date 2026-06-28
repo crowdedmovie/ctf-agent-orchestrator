@@ -6506,6 +6506,27 @@ def _build_standard_prompt(
             "Keep command output bounded: avoid unbounded recursive listings, and use "
             "targeted commands with limits (for example, head/tail).",
         ])
+    parts.extend([
+        "",
+        "As you work, save every script you write to a named file in the current directory "
+        "(e.g. solve.py, decrypt.py, exploit.py) so the files persist after you finish.",
+        "",
+        "When you find the flag, write WRITEUP.md in the current directory with these sections:",
+        "  ## Challenge",
+        "  One sentence describing what the challenge is about.",
+        "  ## Vulnerability / Technique",
+        "  What the core vulnerability or technique is (e.g. format string bug, RSA small-e, IDOR).",
+        "  ## Steps",
+        "  Numbered list of exactly what you did, in enough detail that a reader could follow along.",
+        "  For each meaningful action (running a tool, writing a script, extracting a file), show:",
+        "    - The command you ran or the script you wrote, as a code block",
+        "    - What the output or result was",
+        "  ## Artifacts",
+        "  List every file you created or extracted during the solve (scripts, decoded files, etc.),",
+        "  with a one-line description of what each one is.",
+        "  ## Flag",
+        "  The flag.",
+    ])
     return "\n".join(parts)
 
 
@@ -13339,7 +13360,7 @@ if __name__ == "__main__":
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=443,
+        port=int(os.environ.get("PORT", "443")),
         log_level="info",
         ssl_certfile=ssl_certfile,
         ssl_keyfile=ssl_keyfile,

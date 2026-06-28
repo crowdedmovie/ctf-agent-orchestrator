@@ -152,9 +152,18 @@ async def _run_agent_sdk(
         value = os.environ.get(key, "")
         if value:
             claude_env[key] = value
+    for key in ("ANTHROPIC_API_KEY",):
+        value = os.environ.get(key, "")
+        if value:
+            claude_env[key] = value
     for key, value in (kwargs.get("_env") or {}).items():
         if key in {"ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN"} and value:
             claude_env[key] = str(value)
+    # ANTHROPIC_AUTH_TOKEN is stored as the API key in the webapp's settings UI,
+    # but the Claude CLI expects API keys in ANTHROPIC_API_KEY (OAuth tokens go in
+    # ANTHROPIC_AUTH_TOKEN). Mirror it so the CLI authenticates correctly.
+    if "ANTHROPIC_AUTH_TOKEN" in claude_env and "ANTHROPIC_API_KEY" not in claude_env:
+        claude_env["ANTHROPIC_API_KEY"] = claude_env.pop("ANTHROPIC_AUTH_TOKEN")
 
     options = ClaudeAgentOptions(
         permission_mode="bypassPermissions",
